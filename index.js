@@ -9,8 +9,9 @@ let globalIgnoreFilters = [
 // Requires
 let fs = require('fs');
 let minimatch = require("minimatch");
-let Zip = new require('node-zip');
+let Zip = require('node-zip');
 let recursiveReaddirSync = require('recursive-readdir-sync');
+let luamin = require('luamin');
 
 // Command line arguments
 let argv = require('minimist')(process.argv.slice(2));
@@ -69,6 +70,11 @@ function addFolder(folderName, zip) {
 
 	let ignoreFilters = globalIgnoreFilters.concat(configIgnoreFilters);
 
+	// (White)list of items that will be minified. Again turned into local to whole zip paths
+	let minifyList = (config.minify || []).map(function(path) {
+		return folderName + "/" + path;
+	});
+
 	recursiveReaddirSync(folderName)
 		.filter(function(path) { // filter files on the ignore list
 			return ignoreFilters.every(function(filter) {
@@ -76,7 +82,18 @@ function addFolder(folderName, zip) {
 			});
 		})
 		.map(function(path) { // convert paths to [path, contents] tuples
-			return [path, fs.readFileSync(path)];
+			let minify = minifyList.some(function(filter) { return minimatch(path, filter); });
+
+			let contents;
+			if (minify) {
+				let contentsUTF = fs.readFileSync(path, "utf8");
+				let minified = luamin.minify(contentsUTF);
+				contents = new Buffer(minified);
+			} else {
+				contents = fs.readFileSync(path);
+			}
+
+			return [path, contents];
 		})
 		.forEach(function(pathContentTuple) { // write tuples into the zip file
 			zip.file(pathContentTuple[0], pathContentTuple[1]);
