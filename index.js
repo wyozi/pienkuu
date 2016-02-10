@@ -75,6 +75,9 @@ function addFolder(folderName, zip) {
 		return folderName + "/" + path;
 	});
 
+	// List of actions that should be executed after processing folder files
+	let actionList = (config.actions || []);
+
 	recursiveReaddirSync(folderName)
 		.filter(function(path) { // filter files on the ignore list
 			return ignoreFilters.every(function(filter) {
@@ -98,4 +101,24 @@ function addFolder(folderName, zip) {
 		.forEach(function(pathContentTuple) { // write tuples into the zip file
 			zip.file(pathContentTuple[0], pathContentTuple[1]);
 		});
+
+	actionList.forEach(function(action) {
+		// action is an array where first value is a string identifier and second is object of options
+		let actionName = action[0];
+		let actionOpts = action[1] || {};
+		applyAction(actionName, actionOpts, {
+			folderName: folderName,
+			zip: zip,
+			config: config
+		});
+	})
+}
+
+function applyAction(name, actionOpts, opts) {
+	if (name == "print") {
+		console.log(opts.folderName + ": " + actionOpts.text);
+	} else {
+		console.warn("Invalid action name '" + name + "' in '" + opts.folderName + "/pienkuu.json': no handler for action found.");
+		process.exit(1);
+	}
 }
