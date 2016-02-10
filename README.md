@@ -6,7 +6,7 @@ A node.js application for packing modules (directories) containing primarily Lua
 
 `node index.js folder-name` where `folder-name` must be a folder that contains a `pienkuu.json` file. See below for examples of the json file contents.
 
-## `pienkuu.json` examples
+## Example configurations
 
 ### Basic
 
