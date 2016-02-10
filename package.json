@@ -9,9 +9,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^3.2.2",
     "luamin": "^1.0.0",
     "minimatch": "^3.0.0",
     "minimist": "^1.2.0",
+    "needle": "^1.0.0",
     "node-zip": "^1.1.1",
     "recursive-readdir-sync": "^1.0.6"
   }
