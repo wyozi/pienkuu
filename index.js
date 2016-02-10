@@ -1,11 +1,5 @@
 "use strict";
 
-// Configuration
-let globalIgnoreFilters = [
-	"*/.git/**",
-	"*/pienkuu.json"
-];
-
 // Requires
 let Promise = require("bluebird");
 let fs = require('fs');
@@ -17,6 +11,13 @@ let luamin = require('luamin');
 // Command line arguments
 let argv = require('minimist')(process.argv.slice(2));
 
+// Configuration
+let globalIgnoreFilters = [
+	"*/.git/**",
+	"*/pienkuu.json"
+];
+let isVerbose = argv.v == true;
+
 let sourceFolderName = argv._[0];
 if (!sourceFolderName) {
 	console.warn("Please provide a folder name as the first argument.");
@@ -24,6 +25,8 @@ if (!sourceFolderName) {
 }
 
 let outputFileName = sourceFolderName + ".zip";
+
+// IMPLEMENTATION
 
 // Remove old output file if it exists
 try {
@@ -34,6 +37,7 @@ try {
 let zip = new Zip();
 addFolder(sourceFolderName, zip)
 	.then(function() { // we're done! write the zip file
+		if (isVerbose) console.log("Done! Writing zip buffer to output file '" + outputFileName + "'.")
 		fs.writeFileSync(outputFileName, zip.generate({base64: false, compression: 'DEFLATE'}), "binary");
 	}, function(e) { // something failed; abort
 		console.warn(e);
@@ -53,6 +57,8 @@ function fetchFolderConfig(folderName) {
 function addFolder(folderName, zip) {
 	let config;
 	return fetchFolderConfig(folderName).then(function(_config) {
+		if (isVerbose) console.log("Fetched configuration for folder '" + folderName + "'");
+
 		config = _config;
 
 		// Add dependencies
@@ -124,6 +130,8 @@ function applyAction(name, actionOpts, opts) {
 		return new Promise(function(resolve) {
 			let needle = require('needle');
 
+			if (isVerbose) console.log("Downloading from url '" + actionOpts.url + "'");
+
 			needle.get(actionOpts.url, {follow: 3, decode: false, parse: false}, function(error, response) {
 				let path = require('path');
 
@@ -136,6 +144,8 @@ function applyAction(name, actionOpts, opts) {
 				}
 
 				opts.zip.file(fullPath, response.body);
+
+				if (isVerbose) console.log("Download complete");
 				resolve();
 			});
 		})
