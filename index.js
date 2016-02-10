@@ -127,7 +127,9 @@ function applyAction(name, actionOpts, opts) {
 			needle.get(actionOpts.url, {follow: 3, decode: false, parse: false}, function(error, response) {
 				let path = require('path');
 
-				let fullPath = actionOpts.target;
+				// convert to folder-relative path
+				let fullPath = opts.folderName + '/' + actionOpts.target;
+
 				if (fullPath.endsWith('/')) { // is a folder
 					let fileName = path.basename(actionOpts.url);
 					fullPath = fullPath + fileName;
