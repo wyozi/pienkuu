@@ -75,7 +75,10 @@ function addFolder(folderName, zip) {
 
 		let ignoreFilters = globalIgnoreFilters.concat(configIgnoreFilters);
 
-		// (White)list of items that will be minified. Again turned into local to whole zip paths
+		// (White)list of items that will be linted/minified. Again turned into local to whole zip paths
+		let lintList = (config.lint || []).map(function(path) {
+			return folderName + "/" + path;
+		});
 		let minifyList = (config.minify || []).map(function(path) {
 			return folderName + "/" + path;
 		});
@@ -90,13 +93,17 @@ function addFolder(folderName, zip) {
 				});
 			})
 			.map(function(path) { // convert paths to [path, contents] tuples
+				let lint = lintList.some(function(filter) { return minimatch(path, filter); });
 				let minify = minifyList.some(function(filter) { return minimatch(path, filter); });
 
 				let contents;
-				if (minify) {
+				if (lint || minify) {
 					let contentsUTF = fs.readFileSync(path, "utf8");
-					let minified = luamin.minify(contentsUTF);
-					contents = new Buffer(minified);
+
+					if (lint) lintLuaFile(path);
+					if (minify) contentsUTF = luamin.minify(contentsUTF);
+
+					contents = new Buffer(contentsUTF);
 				} else {
 					contents = fs.readFileSync(path);
 				}
@@ -118,6 +125,23 @@ function addFolder(folderName, zip) {
 			});
 		});
 	});
+}
+
+function lintLuaFile(path) {
+	let spawn = require('child_process').spawn;
+	let linter = spawn('external/glualint.exe', [path]);
+
+	function printData(data) {
+		data.toString('UTF-8')
+		.split('\n')
+		.filter(function(line) { return line.trim() != "";  })
+		.forEach(function(line) {
+			console.log("glualint: " + line.trim());
+		})
+	}
+
+	linter.stdout.on('data', printData);
+	linter.stderr.on('data', printData);
 }
 
 function applyAction(name, actionOpts, opts) {
