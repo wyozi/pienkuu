@@ -172,7 +172,29 @@ function applyAction(name, actionOpts, opts) {
 				if (isVerbose) console.log("Download complete");
 				resolve();
 			});
-		})
+		});
+	} else if (name == "create-file") {
+		return new Promise(function(resolve) {
+
+			function formatString(str) {
+				let buildDate = new Date();
+
+				return str
+					.replace('{builddate}', buildDate.getFullYear() + '-' + (1 + buildDate.getMonth()) + '-' + buildDate.getDate());
+			}
+
+			let formattedTarget = formatString(actionOpts.target);
+			let formattedContents = formatString(actionOpts.content || '');
+
+			let fullPath = opts.folderName + '/' + formattedTarget;
+			if (isVerbose) console.log("Creating file at " + fullPath);
+
+			opts.zip.file(fullPath, formattedContents);
+
+			if (isVerbose) console.log("File creation complete.");
+
+			resolve();
+		});
 	} else {
 		return Promise.reject("Invalid action name '" + name + "' in '" + opts.folderName + "/pienkuu.json': no handler for action found.");
 	}
