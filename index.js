@@ -3,6 +3,7 @@
 // Requires
 let Promise = require("bluebird");
 let fs = require('fs');
+let path = require('path');
 let minimatch = require("minimatch");
 let Zip = require('node-zip');
 let recursiveReaddirSync = require('recursive-readdir-sync');
@@ -164,8 +165,6 @@ function applyAction(name, actionOpts, opts) {
 			if (isVerbose) console.log("Downloading from url '" + actionOpts.url + "'");
 
 			needle.get(actionOpts.url, {follow: 3, decode: false, parse: false}, function(error, response) {
-				let path = require('path');
-
 				// convert to folder-relative path
 				let fullPath = opts.folderName + '/' + formatTemplateString(actionOpts.target);
 
@@ -202,12 +201,30 @@ function applyAction(name, actionOpts, opts) {
 			let copyToRoot = !!actionOpts.toRoot;
 
 			let fullPath = copyToRoot ? fileTo : (opts.folderName + '/' + fileTo);
-			if (isVerbose) console.log("Copy file " + fileFrom + " to zip-path " + fullPath);
 
-			let contents = fs.readFileSync(fileFrom, {"encoding": "utf8"});
-			opts.zip.file(fullPath, contents);
+			if (!!actionOpts.recursive) {
+				if (isVerbose) console.log("Recursive copying " + fileFrom + " to zip-path " + fullPath);
 
-			if (isVerbose) console.log("File creation complete.");
+				recursiveReaddirSync(fileFrom)
+					.filter(function(path) {
+						return true;
+						//return !minimatch(path, actionOpts.from, {dot: true});
+					})
+					.forEach(function(rpath) {
+						let fpath = path.relative(fileFrom, rpath);
+						let zipPath = fullPath == '' ? fpath : (fullPath + '/' + fpath);
+
+						if (isVerbose) console.log("Copying " + fpath + " -> " + zipPath);
+
+						zip.file(zipPath, fs.readFileSync(rpath));
+					});
+			} else {
+				if (isVerbose) console.log("Copy file " + fileFrom + " to zip-path " + fullPath);
+				let contents = fs.readFileSync(fileFrom, {"encoding": "utf8"});
+				opts.zip.file(fullPath, contents);
+			}
+
+			if (isVerbose) console.log("Copying complete.");
 
 			resolve();
 		});
