@@ -144,6 +144,13 @@ function lintLuaFile(path) {
 	linter.stderr.on('data', printData);
 }
 
+function formatTemplateString(str) {
+	let buildDate = new Date();
+
+	return str
+		.replace('{builddate}', buildDate.getFullYear() + '-' + (1 + buildDate.getMonth()) + '-' + buildDate.getDate());
+}
+
 function applyAction(name, actionOpts, opts) {
 	if (name == "print") {
 		return new Promise(function(resolve) {
@@ -160,7 +167,7 @@ function applyAction(name, actionOpts, opts) {
 				let path = require('path');
 
 				// convert to folder-relative path
-				let fullPath = opts.folderName + '/' + actionOpts.target;
+				let fullPath = opts.folderName + '/' + formatTemplateString(actionOpts.target);
 
 				if (fullPath.endsWith('/')) { // is a folder
 					let fileName = path.basename(actionOpts.url);
@@ -175,21 +182,30 @@ function applyAction(name, actionOpts, opts) {
 		});
 	} else if (name == "create-file") {
 		return new Promise(function(resolve) {
-
-			function formatString(str) {
-				let buildDate = new Date();
-
-				return str
-					.replace('{builddate}', buildDate.getFullYear() + '-' + (1 + buildDate.getMonth()) + '-' + buildDate.getDate());
-			}
-
-			let formattedTarget = formatString(actionOpts.target);
-			let formattedContents = formatString(actionOpts.content || '');
+			let formattedTarget = formatTemplateString(actionOpts.target);
+			let formattedContents = formatTemplateString(actionOpts.content || '');
 
 			let fullPath = opts.folderName + '/' + formattedTarget;
 			if (isVerbose) console.log("Creating file at " + fullPath);
 
 			opts.zip.file(fullPath, formattedContents);
+
+			if (isVerbose) console.log("File creation complete.");
+
+			resolve();
+		});
+	} else if (name == "copy") {
+		return new Promise(function(resolve) {
+			let fileFrom = opts.folderName + '/' + actionOpts.from;
+			let fileTo = formatTemplateString(actionOpts.to);
+
+			let copyToRoot = !!actionOpts.toRoot;
+
+			let fullPath = copyToRoot ? fileTo : (opts.folderName + '/' + fileTo);
+			if (isVerbose) console.log("Copy file " + fileFrom + " to zip-path " + fullPath);
+
+			let contents = fs.readFileSync(fileFrom, {"encoding": "utf8"});
+			opts.zip.file(fullPath, contents);
 
 			if (isVerbose) console.log("File creation complete.");
 
