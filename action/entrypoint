@@ -1,0 +1,6 @@
+#!/bin/sh
+
+mkdir $ADDON_FOLDER
+rsync -av --exclude='.github' --exclude='$ADDON_FOLDER' --exclude='.git' ./ $ADDON_FOLDER
+node /pienkuu/index.js $ADDON_FOLDER
+
